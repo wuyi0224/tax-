@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>全球财税政策框架浏览器</title>
+    <!-- 引入 ECharts -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    <style>
+        body {
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            margin: 0; padding: 0;
+            background: #f5f6f8;
+            color: #333;
+            overflow: hidden;
+        }
+        
+        /* 顶部导航栏 */
+        .header {
+            height: 60px;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px 0 30px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+            position: relative;
+            z-index: 100;
+        }
+        .logo {
+            display: flex;
+            align-items: center;
+            font-size: 20px;
+            font-weight: bold;
+            color: #222;
+        }
+        .logo svg {
+            width: 24px;
+            height: 24px;
+            margin-right: 10px;
+            color: #1a73e8;
+        }
+        .nav-tabs {
+            display: flex;
+            height: 100%;
+            align-items: center;
+            gap: 25px;
+            margin-right: 20px;
+        }
+        .nav-tab {
+            height: 100%;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            color: #666;
+            font-size: 15px;
+            border-bottom: 3px solid transparent;
+            padding: 0 5px;
+            transition: all 0.2s;
+        }
+        .nav-tab:hover { color: #1a73e8; }
+        .nav-tab.active {
+            color: #1a73e8;
+            border-bottom-color: #1a73e8;
+            font-weight: 500;
+        }
+        .nav-tab.special-tab {
+            color: #e65100;
+        }
+        .nav-tab.special-tab.active {
+            border-bottom-color: #e65100;
+            font-weight: bold;
+        }
+
+        /* 主体布局 */
+        .main-container {
+            display: flex;
+            height: calc(100vh - 60px);
+        }
+
+        /* 左侧侧边栏 */
+        .sidebar {
+            width: 280px;
+            background: #fff;
+            border-right: 1px solid #eaeaea;
+            overflow-y: auto;
+            padding: 10px 0;
+            flex-shrink: 0;
+        }
+        .group-title {
+            font-size: 15px;
+            font-weight: bold;
+            color: #1a73e8;
+            background-color: #e8f0fe;
+            padding: 12px 20px;
+            margin: 10px 10px 5px 10px;
+            border-radius: 4px;
+            border-left: 4px solid #1a73e8;
+        }
+        .menu-item {
+            padding: 12px 20px 12px 30px;
+            font-size: 14px;
+            cursor: pointer;
+            color: #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 4px solid transparent;
+        }
+        .menu-item:hover { background: #f8f9fa; }
+        .menu-item.active {
+            background: #f0f4ff;
+            color: #1a73e8;
+            border-left-color: #1a73e8;
+        }
+        .dot {
+            width: 6px;
+            height: 6px;
+            background: #5bb974;
+            border-radius: 50%;
+        }
+
+        /* 右侧内容区 */
+        .content {
+            flex: 1;
+            padding: 40px;
+            overflow-y: auto;
+            background: #f8f9fa;
+            position: relative;
+        }
+        
+        /* 背景水印 */
+        .content::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="250" opacity="0.03" transform="rotate(-30)"><text x="30" y="150" font-family="Arial" font-weight="bold" font-size="24">2026/07/23 10:34</text></svg>');
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        .content-inner {
+            position: relative;
+            z-index: 1;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 26px;
+            margin: 0 0 5px 0;
+            color: #111;
+        }
+        .breadcrumb {
+            font-size: 13px;
+            color: #888;
+            margin-bottom: 25px;
+        }
+
+        /* 卡片样式 */
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 25px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+            margin-bottom: 25px;
+        }
+        .card-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #f0f0f0;
+            color: #222;
+        }
+        .item-title {
+            font-weight: bold;
+            font-size: 15px;
+            color: #222;
+            margin-top: 15px;
+            margin-bottom: 6px;
+        }
+        .item-desc {
+            font-size: 14px;
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 8px;
+        }
+
+        /* 横向对比模板的多列布局容器（参考用户截图模板） */
+        .comp-filter-bar {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 30px;
+            background: #fff;
+            padding: 15px 25px;
+            border-radius: 8px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+        }
+        .comp-filter-bar label {
+            font-weight: bold;
+            font-size: 14px;
+            color: #333;
+        }
+        .comp-filter-bar select {
+            padding: 8px 12px;
+            border: 1px solid #dcdfe6;
+            border-radius: 4px;
+            font-size: 14px;
+            background: #fafafa;
+            outline: none;
+            cursor: pointer;
+            width: 240px;
+        }
+        
+        .comp-columns-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 25px;
+            align-items: start;
+        }
+        .region-column {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            border-top: 4px solid #1a73e8;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .region-column-header {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #1a73e8;
+            border-bottom: 1px solid #eaeaea;
+        }
+        .region-column-body {
+            padding: 20px;
+            max-height: 650px;
+            overflow-y: auto;
+        }
+        .policy-sub-card {
+            border: 1px solid #e1f5fe;
+            background: #fefeff;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+        }
+        .policy-sub-card-title {
+            font-weight: bold;
+            font-size: 15px;
+            color: #0277bd;
+            margin-bottom: 10px;
+            border-bottom: 1px dashed #b3e5fc;
+            padding-bottom: 8px;
+        }
+
+        /* 国际海运分析专区 */
+        .freight-chart-container {
+            width: 100%;
+            height: 450px;
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+            margin-bottom: 25px;
+            box-sizing: border-box;
+        }
+        .freight-text {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+        }
+        .freight-text h3 {
+            margin-top: 0;
+            color: #1a73e8;
+            font-size: 18px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #f0f0f0;
+            padding-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="logo">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M5 21h14v-2H5v2zm8-18v14h6V3h-6zM7 7v10h4V7H7z"/>
+        </svg>
+        <span>全球财税政策框架浏览器</span>
+    </div>
+    <div class="nav-tabs" id="navTabs"></div>
+</div>
+
+<div class="main-container">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="content">
+        <div class="content-inner" id="contentArea"></div>
+    </main>
+</div>
+
+<script>
+    const fullDb = {"新加坡": [{"Category": "", "Policy": "政策科目", "Description": "合规性描述与核心实务摘要", "Source": "原始数据源"}, {"Category": "大方向经济制度与政策", "Policy": "《2026年新加坡财政预算案》", "Description": "详情见附件", "Source": "网址：https://www.singaporebudget.gov.sg/budget-speech/budget-statement"}, {"Category": "公司相关法规与政策", "Policy": "《公司法》", "Description": "立法目的", "Source": "网址：https://www.acra.gov.sg/"}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "1.建立公司独立法人地位，规范商业生命周期，保护债权人与投资者利益。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "2.规范公司的设立、运营、管理以及解散等法律行为，促进商业发展，维护股东和债权人的合法权益，并确保公司的透明度与合规性。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "适用对象", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "在新加坡注册成立的各类公司、协会或合伙企业，包括本地公司、外国公司以及其他特定实体。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "公司注册", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "1.至少1名成员（股东），注册资本最低1新币。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "2.向登记官提交拟注册公司的章程以及可能规定的其他文件。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "3.若要注册为私人公司，其章程必须限制股份转让权，且成员人数不得超过 50 人。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "董事责任与投票", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "1.必须有1名本地常驻董事。需履行信托义务（为公司利益）和勤勉义务。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "2.公司必须建立并维护一份名义董事名册。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "3.董事或公司职员不得利用其职务之便获得的信息为自己或他人获取不当利益，或对公司造成损害", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "股东权利与股东大会", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "1.股东拥有投票权（通过普通或特别决议）、分红权、优先认股权。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "2.应当在每个财政年度结束后的 6个月内召开年度股东大会。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "3.在发出通知的前提下，公司可以随时召开股东大会，并且公司可以决定任何已召开或已召集召开的会议为公司的年度股东大会。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "4.如果私人公司通过决议，可以批准免除召开年度股东大会。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "5.普通决议 (>50%)，如任免董事、通过财报、派发股息。特别决议 (≥75%)，如修改公司章程等。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "6.要求披露层层控股后的最终受益人 ，严禁匿名隐瞒。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "公司秘书", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "1.每一家公司都必须拥有一名或多名公司秘书，且秘书须由公司委任。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "2.秘书及所属服务公司有义务承担责任，发现客户可疑交易必须上报。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "3.秘书由董事任命，且至少有一位秘书必须在公司的注册办公地址亲自或通过其代理人或职员在公众可访问的日期和时间在场。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "年度申报", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "公司必须在财务年度结束后一定期限内（上市公司5个月，其他公司7个月）向会计与企业管制局（ACRA）提交年度申报表。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "会计记录与内部控制", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "1.公司必须保存能够真实、完整反映其交易和财务状况的会计记录。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "2.必须保存在公司的注册办事处，或者在董事认为合适的其他地点，并且在任何时候都必须允许董事查阅。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "3.记录应涵盖收入支出、资产负债以及必要的业务细节以解释交易。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "4.所有会计记录至少保存五年以备查验，会计记录可存于境外但必须能够在新加坡随时调取。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "5.公司必须建立并维护一套内部会计控制系统，妥善维护适当的会计记录，并确保财务信息可靠。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "财务报告", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "1.公司必须定期编制财务报表以反映其经营成果与财务状况，必须达到“真实与公允反映”的法律标准。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "2.财务报表需按照新加坡财务报告准则（SFRS）编制。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "3.除符合法定豁免条件外，公司财务报表必须经审计，符合规模标准的小公司可免于强制审计。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "4.每家公司的董事必须在公司的年度股东大会上提交该财务年度的财务报表。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "《合同法》", "Description": "立法目的", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "1.通过法律强制力保障协议的履行，让各方在交易前有明确的预期。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "2.当一方违约时，为受损方提供赔偿机制；同时防止通过不公平条款欺压弱势方（受《不公平合同条款法》约束）。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "适用对象", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "1.任何具备民事行为能力的个人、在新加坡注册的公司或在新加坡境内签署协议的境外实体。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "2.在特定条件下，非合同签署方也可以行使合同权利。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "构成", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "没有统一“合同法典”，《Unfair Contract Terms Act》、《Contracts (Rights of Third Parties) Act》等都是组成部分。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "《竞争法》Competition Act 2004", "Description": "立法目的", "Source": "网址：https://sso.agc.gov.sg//Act/CA2004"}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "1.鼓励企业通过创新、提高生产力和效率来竞争，而非通过不正当手段。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "2.防止企业通过垄断定价或限制供应来损害消费者权益。确保新的竞争者能够自由进入市场。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "适用对象", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "不受限于实体的国籍或注册地，在新加坡从事商业和经济活动的市场参与者，包括私营企业、政府关联公司及其他组织等。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "约束内容", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "三大核心禁令：禁止反竞争协议、禁止滥用支配地位、监管并购行为。", "Source": ""}, {"Category": "国际协定", "Policy": "越南与美国《世贸组织（WTO）原产地规则协定》", "Description": "关税的征收，是跟着“物流”和“货物的原产地”走的，所以应关注越南与美国之间的关税。", "Source": "网址：https://www.mti.gov.sg/trade-international-economic-relations/agreements/free-trade-agreements-fta/"}, {"Category": "国际协定", "Policy": "", "Description": "核心内容", "Source": ""}, {"Category": "国际协定", "Policy": "", "Description": "1.原产地证书：越南需申领原产地证书。", "Source": ""}, {"Category": "国际协定", "Policy": "", "Description": "2.原产地规则（只有符合原产地规则，才能享受零关税）（符合其中一个就行）：", "Source": ""}, {"Category": "国际协定", "Policy": "", "Description": "a.完全获得：在越南境内完全生产或提取；", "Source": ""}, {"Category": "国际协定", "Policy": "", "Description": "b.区域价值成分：产品在越南的增值部分不得低于 40%；", "Source": ""}, {"Category": "国际协定", "Policy": "", "Description": "c.税则归类改变：使用非原产材料加工后，成品的海关编码（HS Code）发生特定层级的改变；", "Source": ""}, {"Category": "国际协定", "Policy": "", "Description": "d.特定加工工序：在越南进行特定加工工序。", "Source": ""}, {"Category": "其他", "Policy": "《自由贸易区法案》", "Description": "立法目的", "Source": "网址：https://sso.agc.gov.sg//Act/FTZA1966"}, {"Category": "其他", "Policy": "", "Description": "1.促进转口贸易和货物转运，允许企业在货物进入新加坡关税区之前，无需支付关税和消费税。", "Source": ""}, {"Category": "其他", "Policy": "", "Description": "2.降低企业的资金占用成本为国际货物的移动提供高效、简化的海关监管流程。", "Source": ""}, {"Category": "其他", "Policy": "", "Description": "适用对象", "Source": ""}, {"Category": "其他", "Policy": "", "Description": "涉及国际贸易、报关、仓储及物流的进出口商、货运代理和船务代理。", "Source": ""}, {"Category": "其他", "Policy": "", "Description": "核心内容", "Source": ""}, {"Category": "其他", "Policy": "", "Description": "1.货物在自由贸易区内可以存放、展示、重新包装、拆分或进行轻度加工，但大规模的生产制造通常需要额外批准。", "Source": ""}, {"Category": "其他", "Policy": "", "Description": "2.在自由贸易区内，除非获得自由贸易区持牌运营商的书面授权，并遵守条件，否则不得进行零售贸易。", "Source": ""}, {"Category": "其他", "Policy": "", "Description": "3.明确企业在区内可进行的“非制造性”作业（贴标、分拆、组装），界定合规的增值服务边界。", "Source": ""}, {"Category": "其他", "Policy": "", "Description": "4.自由贸易区经营者和货物处理商必须按照规定准备、提交并保留相关信息记录，以确保监管透明度。", "Source": ""}, {"Category": "其他", "Policy": "《重要投资审阅法（2024）》", "Description": "立法目的", "Source": "网址：https://sso.agc.gov.sg/Act/SIRA2024"}, {"Category": "其他", "Policy": "", "Description": "防止关键企业被不当控制或影响，填补现有行业监管之外的空白，针对非特定行业实体建立统一的安全审查标准。", "Source": ""}, {"Category": "其他", "Policy": "", "Description": "适用对象", "Source": ""}, {"Category": "其他", "Policy": "", "Description": "任何被贸工部（MTI）指定为对国家安全至关重要的公司或组织。", "Source": ""}, {"Category": "其他", "Policy": "", "Description": "核心内容", "Source": ""}, {"Category": "其他", "Policy": "", "Description": "1.当投资者持股份额达到 5% 时，需进行事后通知；持股达到 12%、25% 或 50% 时，必须履行事前审批义务。", "Source": ""}, {"Category": "其他", "Policy": "", "Description": "2.关键实体任命首席执行官、董事会主席等核心职位需经过部长的书面批准。", "Source": ""}, {"Category": "其他", "Policy": "《雇主海外市场沉浸式培训计划》", "Description": "立法目的", "Source": "网址：https://www.wsg.gov.sg/home/employers-industry-partners/workforce-development-job-redesign/omip-for-employers"}, {"Category": "其他", "Policy": "", "Description": "1.通过政府补贴，缓解企业派驻员工赴海外市场调研、学习和实战的人力成本压力。", "Source": ""}, {"Category": "其他", "Policy": "", "Description": "2.旨在帮助对海外扩张感兴趣的公司对员工进行再培训，从而帮助公司投资于员工发展，并最终提高公司的全球流动性。", "Source": ""}, {"Category": "其他", "Policy": "", "Description": "适用对象", "Source": ""}, {"Category": "其他", "Policy": "", "Description": "1.申请主体：在新加坡注册并经营、具有国际化扩张需求的企业（重点支持中小型企业）。", "Source": ""}, {"Category": "其他", "Policy": "", "Description": "2.受训对象：受雇于该企业的本地员工，通常是具有发展潜力的初中级管理人员或专业人员。", "Source": ""}, {"Category": "其他", "Policy": "", "Description": "核心内容", "Source": ""}, {"Category": "其他", "Policy": "", "Description": "1.培训必须包含明确的海外实地沉浸环节，且必须与公司的海外扩张计划直接相关，员工必须至少有6个月的时间在海外以异地调动的方式工作。", "Source": ""}, {"Category": "其他", "Policy": "", "Description": "2.政府可补贴最高可达工资的 70%（每月上限为 5000 美元），最长可达 9 个月，并报销或补贴受训期间产生的住宿、差旅等必要生活费用。", "Source": ""}, {"Category": "会计准则", "Policy": "SFRS (I) —— 新加坡财务报告准则（等同于国际准则）", "Description": "适用主体", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "新加坡上市公司必须采用，并用于对外资本市场披露", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "与IFRS关系", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "准则内容与IFRS逐条一致", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "收入确认方法", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "必须应用“五步法模型”（识别合同、履约义务、交易价格等）并对多重履约义务进行拆分", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "合并报表要求", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "必须基于“控制权”判断并编制合并报表", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "计量与披露", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "要求对投资性房地产、金融工具等项目进行公允价值计量，并披露估值技术与假设", "Source": ""}, {"Category": "会计准则", "Policy": "SFRS —— 新加坡财务报告准则（海利得适用）", "Description": "适用主体", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "未上市企业使用", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "与IFRS关系", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "基于IFRS制定，但部分准则版本存在滞后", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "收入确认方法", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "原则接近，但部分企业可能未完全采用五步法或应用不完整", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "合并报表要求", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "合并原则与国际接近，但对特殊主体判断可能较少涉及", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "计量与披露", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "部分项目采用公允价值，但披露深度及范围较小", "Source": ""}, {"Category": "会计准则", "Policy": "SFRS for Small Entities —— 新加坡小微企业财务报告准则", "Description": "", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "适用主体", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "符合“小微实体”定义的私人公司", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "小微实体：在过去连续两个财政年度满足以下三个条件中的至少两个：", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "年收入不超过1000万新币；总资产不超过1000万新币；员工人数不超过50人。", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "与IFRS关系", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "基于IFRS for SMEs改编，删除或修改部分复杂准则", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "收入确认方法", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "一般按单一交易确认收入，较少涉及履约义务拆分与复杂估计", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "合并报表要求", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "在满足条件时可不编制合并报表，减少集团层面报告要求", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "计量与披露", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "多数资产采用历史成本计量，通常不要求披露复杂估值方法", "Source": ""}, {"Category": "会计法规", "Policy": "《2004年会计与企业管制局法》                                                 《ACRA（注册与监管强化）2024法案》", "Description": "立法目的", "Source": "网址：https://www.acra.gov.sg/regulations/legislation/acra-act/"}, {"Category": "会计法规", "Policy": "", "Description": "1.授予ACRA广泛的权力，以履行其法定职能，包括制定标准、征收费用等。", "Source": ""}, {"Category": "会计法规", "Policy": "", "Description": "2.通过集中化的登记制度，确保企业信息的真实性，为商业交易提供信用基础。", "Source": ""}, {"Category": "会计法规", "Policy": "", "Description": "3.通过数字化通讯和政府间数据共享，减少企业的重复申报负担。", "Source": ""}, {"Category": "会计法规", "Policy": "", "Description": "适用对象", "Source": ""}, {"Category": "会计法规", "Policy": "", "Description": "所有在新加坡注册的商业实体（公司、有限合伙等）、执业会计师、企业服务提供商。", "Source": ""}, {"Category": "会计法规", "Policy": "", "Description": "核心内容", "Source": ""}, {"Category": "会计法规", "Policy": "", "Description": "1.任何依据本法或受监管法律需要发出、提供或发送给任何人的信息或文件，都可以通过上传至电子交易系统并发送电子邮件通知的方式完成。", "Source": ""}, {"Category": "会计法规", "Policy": "", "Description": "2.提升行政效率，简化监管制度 。", "Source": ""}, {"Category": "会计法规", "Policy": "", "Description": "3.企业管理层现在可以默认使用“联系地址”而非“居住地址”显示在公共记录中，大幅提升了董事的个人隐私安全。", "Source": ""}, {"Category": "税法", "Policy": "《1947年所得税法》Income Tax Act", "Description": "征税范围与原则", "Source": "网址：https://sso.agc.gov.sg/Act/ITA1947"}, {"Category": "税法", "Policy": "", "Description": "确立征税原则：明确企业在新加坡境内产生的收益，以及在新加坡接收的海外收益的纳税义务。", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "一站式公司税制：公司缴纳 17% 的所得税后，分配给股东的股息不再征收个人所得税。", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "适用对象", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "在新加坡经营的所有公司实体（包括本地注册公司和外国公司分行）。", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "规定税种：", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "所得税（涵盖公司税、个人所得税等），公司税标准税率17%，个人所得税实行0%-24%的累进税率。", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "核心税收优惠政策", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "1.首 10,000 新元应纳税所得额享受 75% 的免税，随后190,000 新元应纳税所得额享受 50% 的免税。", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "2.境外收到的股息、分行利润、服务费，若来源地税率不低于 15% 且已纳税，在新加坡可申请免税。", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "3.在新加坡进行的符合条件的研发活动，其开支可获得 250% 的税前扣除额。2024–2028年EIS制度下，合格研发可以达到最高400%扣除。", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "2026年度税务政策与修订专项", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "1.企业所得税回扣：2026课税年度所有公司可获得40%的税额回扣，上限为30,000新元。", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "2.企业现金补贴：针对雇用至少一名本地员工的小微企业，提供最低1,500新元的现金流支持（与回扣共用上限）。", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "3.400%超额抵免：针对研发、知识产权注册及员工培训的合格支出，可申请400%的税务扣除。", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "4.AI专项加码：与AI相关支出，提供专项400%抵免，每课税年度最高 50,000 新元（适用于2027、2028年）。", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "5.15%补足税：自2025年起，在最近4个财年中，至少有2个财年的全球合并年收入超过7.5亿欧元的集团，在新加坡的有效税率需达到15%。", "Source": ""}, {"Category": "税法", "Policy": "《财政（所得税）草案》", "Description": "1.不创设新税种，但调整具体政策，将《财政预算案》中宣布的临时性、阶段性的税收调整措施正式写入法律，确保政策有法可依。", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "2.2026年最新的《所得税（修订）草案》 在财政部 (MOF) 官网开启公众咨询。", "Source": ""}, {"Category": "税法", "Policy": "各类《所得税条例》", "Description": "对所得税法内容细化操作规则：例如，对特定行业（如金融、航运）的优惠税率（如10%、5%） 申请条件和范围做出具体规定。", "Source": ""}, {"Category": "税收协定", "Policy": "《新加坡——中国避免双重征税协定》股息分红", "Description": "1.协定优惠税率：0%（实际），上限5%或10%", "Source": "网址:https://www.iras.gov.sg/taxes/international-tax/international-tax-agreements-concluded-by-singapore/"}, {"Category": "税收协定", "Policy": "", "Description": "2.中国母公司征税并抵免。中国对收到分红征税，但准予抵免已在新加坡缴纳的税款。由于是100%全资控股，可直接申请“间接抵免”底层企业所得税。", "Source": ""}, {"Category": "税收协定", "Policy": "", "Description": "3.新加坡子公司不征收预提税。根据新加坡现行单层税制，只要利润已交企业所得税，分红汇出时直接免收预提税。尽管协定有上限，但目前新加坡国内法执行 0%。", "Source": ""}, {"Category": "税收协定", "Policy": "", "Description": "4.适用条件：a. 税率梯度：中国母公司直接持股 >=25% 适用 5% 协定上限 (100%控股适用此项)；持股不足 25% 则适用 10% 协定上限。\nb. 身份与反避税：中国母公司必须是“受益所有人”，且满足“主要目的测试(PPT)”。", "Source": ""}, {"Category": "税收协定", "Policy": "《新加坡——中国避免双重征税协定》贷款利息", "Description": "1.协定优惠税率：7%或10%", "Source": ""}, {"Category": "税收协定", "Policy": "", "Description": "2.中国母公司征税并抵免。中国对收到的利息征税，并允许抵免已在新加坡缴纳的预提税。", "Source": ""}, {"Category": "税收协定", "Policy": "", "Description": "3.新加坡子公司限制征税。新加坡作为来源国对支付给中国的利息，预提税最高限定在7%或10%", "Source": ""}, {"Category": "税收协定", "Policy": "", "Description": "4.适用条件：a. 税率梯度：若支付给中国境内的银行或金融机构，适用 7%；若支付给普通企业(如中国母公司间的借款或货款延期)，适用 10%。\nb. 合规红线：利息率必须符合“独立交易原则”(市场公允利率)，超额部分不享受协定优惠。\nc. 中国母公司必须是利息的“受益所有人”。", "Source": ""}, {"Category": "近期税务改革动向", "Policy": "《经济扩展激励法》", "Description": "立法目的", "Source": "网址：https://sso.agc.gov.sg//Act/EEIRITA1967"}, {"Category": "近期税务改革动向", "Policy": "", "Description": "通过税收减免，诱导企业在新加坡开展具有全球竞争力的先进制造业、高增值服务及研发活动。", "Source": ""}, {"Category": "近期税务改革动向", "Policy": "", "Description": "先锋企业优惠", "Source": ""}, {"Category": "近期税务改革动向", "Policy": "", "Description": " 免税期：针对开创性产品或服务，提供5至15年的全额所得税豁免。", "Source": ""}, {"Category": "近期税务改革动向", "Policy": "", "Description": "发展与扩张激励", "Source": ""}, {"Category": "近期税务改革动向", "Policy": "", "Description": " 低税率：对符合条件的扩张性业务或高价值服务，提供5%、10%或15%的优惠税率（通常为期5-10 年，可续期）。", "Source": ""}, {"Category": "近期税务改革动向", "Policy": "", "Description": "投资津贴", "Source": ""}, {"Category": "近期税务改革动向", "Policy": "", "Description": "抵税红利：除折旧外，额外允许企业根据符合条件的固定资产投入，按比例获得抵税额度，最高可抵消当年100%的应纳税利润。", "Source": ""}, {"Category": "近期税务改革动向", "Policy": "", "Description": "批准的特许权使用费", "Source": ""}, {"Category": "近期税务改革动向", "Policy": "", "Description": "技术引进：为鼓励企业引进海外先进技术，支付给非居民的特许权使用费可申请豁免或降低扣缴税。", "Source": ""}, {"Category": "近期税务改革动向", "Policy": "", "Description": "知识产权激励 。", "Source": ""}, {"Category": "近期税务改革动向", "Policy": "", "Description": "创新奖励：针对利用受专利保护的研发成果所产生的收入，提供5%或10%的特惠税率，鼓励企业在新加坡进行知识产权商业化。", "Source": ""}, {"Category": "近期税务改革动向", "Policy": "《2024年跨国企业（最低税率）法案》", "Description": "立法目的", "Source": ""}, {"Category": "近期税务改革动向", "Policy": "", "Description": "1.落实经合组织（OECD）的第二支柱规则，防止利润转移到低税区。", "Source": ""}, {"Category": "近期税务改革动向", "Policy": "", "Description": "2.通过设立本地补足税，确保原本可能被其他国家收走的税款留在新加坡国库。", "Source": ""}, {"Category": "近期税务改革动向", "Policy": "", "Description": "适用对象", "Source": ""}, {"Category": "近期税务改革动向", "Policy": "", "Description": "最近4个财年中至少2个财年满足全球合并收入 达到或超过7.5亿欧元。", "Source": ""}, {"Category": "近期税务改革动向", "Policy": "", "Description": "生效日期：", "Source": ""}, {"Category": "近期税务改革动向", "Policy": "", "Description": "从2025年1月1日或之后开始的企业财政年度适用。", "Source": ""}, {"Category": "近期税务改革动向", "Policy": "", "Description": "核心内容：", "Source": ""}, {"Category": "近期税务改革动向", "Policy": "", "Description": "如果公司在某一地区的实际有效税率低于15%，必须主动申报并缴纳差额部分，实施15% 的全球最低税及新加坡本地补足税。", "Source": ""}, {"Category": "近期税务改革动向", "Policy": "《2025年所得税（可退还投资抵免）条例》", "Description": "立法目的", "Source": "网址：https://sso.agc.gov.sg/SL/ITA1947-S577-2025"}, {"Category": "近期税务改革动向", "Policy": "", "Description": "保住企业的激励收益，通过现金返还承诺，吸引企业在新加坡进行大规模资本开支、研发及绿色转型。", "Source": ""}, {"Category": "近期税务改革动向", "Policy": "", "Description": "适用对象", "Source": ""}, {"Category": "近期税务改革动向", "Policy": "", "Description": "需获得新加坡经济发展局或企业发展局的批准，在新加坡注册的公司或外国公司分行。", "Source": ""}, {"Category": "近期税务改革动向", "Policy": "", "Description": "生效日期", "Source": ""}, {"Category": "近期税务改革动向", "Policy": "", "Description": "2025年9月1日。", "Source": ""}, {"Category": "近期税务改革动向", "Policy": "", "Description": "核心内容", "Source": ""}, {"Category": "近期税务改革动向", "Policy": "", "Description": "1.为在新加坡进行高价值和实质性新投资（如制造业、绿色经济）的企业提供税收抵免。", "Source": ""}, {"Category": "近期税务改革动向", "Policy": "", "Description": "2.根据项目质量，企业可获得合格支出 10%、30% 或 50% 的抵免额。", "Source": ""}, {"Category": "近期税务改革动向", "Policy": "", "Description": "3.可退还投资抵免条例不仅可抵消普通公司所得税，还可抵消本地补足税和跨国企业补足税，甚至是相关的罚金或利息。", "Source": ""}, {"Category": "近期税务改革动向", "Policy": "", "Description": "4.如果公司税额不足以抵扣，剩余的抵免额将在申请后的 4 年内以现金形式直接返还给企业。", "Source": ""}, {"Category": "近期税务改革动向", "Policy": "", "Description": "5.现金返还通常按以下比例：第 2 年内发放 20%，第 3 年内发放 30%，第 4 年内发放 50%。", "Source": ""}], "香港": [{"Category": "", "Policy": "政策科目", "Description": "合规性描述与核心实务摘要", "Source": "原始数据源"}, {"Category": "大方向经济制度与政策", "Policy": "《基本法》", "Description": "立法目的", "Source": "网址：basiclaw.gov.hk"}, {"Category": "大方向经济制度与政策", "Policy": "", "Description": "就是通过法律形式落实“一国两制”方针，在国家统一前提下，保障香港保持原有资本主义制度、高度自治和权利自由，并明确中央与特区的权力结构。", "Source": ""}, {"Category": "大方向经济制度与政策", "Policy": "", "Description": "核心内容", "Source": ""}, {"Category": "大方向经济制度与政策", "Policy": "", "Description": "1.财政与税收：保持财政独立，实行独立税收制度，自行立法规定税种、税率。", "Source": ""}, {"Category": "大方向经济制度与政策", "Policy": "", "Description": "2.货币与金融：自行制定货币金融政策。港元为法定货币，发行需百分之百准备金，不实行外汇管制，保障资金自由流动。", "Source": ""}, {"Category": "大方向经济制度与政策", "Policy": "", "Description": "3.贸易与产业：\t保持自由港地位，一般不征关税。实行自由贸易政策，为单独关税地区。", "Source": ""}, {"Category": "大方向经济制度与政策", "Policy": "", "Description": "4.法律体系：实行普通法系。香港法院享有独立的司法权和终审权。", "Source": ""}, {"Category": "大方向经济制度与政策", "Policy": "2025香港《施政报告》", "Description": "核心内容", "Source": ""}, {"Category": "大方向经济制度与政策", "Policy": "", "Description": "1.成立“北都发展委员会”，引入“片区开发”模式。", "Source": ""}, {"Category": "大方向经济制度与政策", "Policy": "", "Description": "2.订立专项法律以简化法定程序，涵盖跨境人流、物流及数据流管理 。", "Source": ""}, {"Category": "大方向经济制度与政策", "Policy": "", "Description": "3.驱动内地企业利用香港作为“引进来、走出去”的跳板，通过香港的金融、贸易及专业服务网络开拓新兴市场。", "Source": ""}, {"Category": "大方向经济制度与政策", "Policy": "", "Description": "4.向专项基金注资14.3亿港元；延长“中小企融资担保计划”下还息不还本的安排。", "Source": ""}, {"Category": "大方向经济制度与政策", "Policy": "", "Description": "5.强化股票市场、发展人民币业务、拓展“机场城市”、建设“铁海陆江”货运网络等。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "《公司条例》", "Description": "立法目的", "Source": "网址：https://www.elegislation.gov.hk/hk/cap622!en?xpid=ID_1438403540072_001"}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "通过规范公司设立与运作、强化公司治理及信息披露、保障相关利益方权益，从而建立透明、公平及高效的公司法律制度，并支持香港整体商业及金融市场的发展。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "适用范围", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "适用于所有根据该条例在香港注册成立的公司（包括公众公司和私人公司），也规管在香港设立营业地点的海外注册公司。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "公司治理", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "1.规定公司必须设有章程细则，明确内部管理规则，对权力制衡与监督、风险管理与内控提出具体要求。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "2.强制要求私人公司至少有一名自然人董事。明确了董事须行使的法定职责。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "财务与审计", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "1.基本义务：\t公司董事有责任就每个财政年度，拟备符合该条例规定的财务报表。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "2.豁免规则：符合资格的私人公司，若符合“在提交报告方面获豁免”的条件，可豁免遵守部分较严格的报告规定。\n", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "3.豁免资格判定：总收入 ≤ 1亿港元；总资产 ≤ 1亿港元；雇员人数 ≤ 100，任意满足两项，即可豁免。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "4.豁免内容：可免于编制复杂的商业审视、不需披露董事利益及高级管理层薪酬等详细信息，大幅降低审计成本。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "5.财务报表标准：非豁免公司，报表须真实而中肯地反映公司财务状况； 豁免公司，可遵循香港会计师公会发布的“中小企财务报告准则 (SME-FRS)”编制。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "6.审计要求：所有公司（包括获豁免的公司）的财务报表均须经审计，唯一的例外是不活动公司。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "7.报告提交与公示：公司的财务报表、董事报告及核数师报告须交付公司注册处存档，供公众查阅。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "香港三家公司均满足豁免要求，按“中小企财务报告准则 (SME-FRS)”编制财务报告。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "注：因公司条例中规定，连续两年不满足豁免资格判定则被正式剥夺适用SME的资格，应着重关注2026年海利得（香港）有限公司的总收入与总资产情况。", "Source": ""}, {"Category": "国际协定", "Policy": "中国与美国：WTO《贸易便利化协定》", "Description": "注意：关税的征收，是跟着“物流”和“货物的原产地”走的，所以应关注中国与美国的关税。", "Source": "网址：https://www.wto.org/english/docs_e/legal_e/legal_e.htm"}, {"Category": "国际协定", "Policy": "", "Description": "核心内容", "Source": ""}, {"Category": "国际协定", "Policy": "", "Description": "1.通关程序简化：推动电子申报和电子支付，限制不必要的重复检查。", "Source": ""}, {"Category": "国际协定", "Policy": "", "Description": "2.提高贸易规则公开程度：提供预裁定，提前确定商品归类/税率。", "Source": ""}, {"Category": "国际协定", "Policy": "", "Description": "3.加快货物放行与通关速度：尽快放行货物，推广单一窗口，企业只需一次提交资料。", "Source": ""}, {"Category": "国际协定", "Policy": "", "Description": "4.跨境监管合作与费用约束：海关与边检协同，减少不合理的收费和罚款。", "Source": ""}, {"Category": "国际协定", "Policy": "中国与越南：《中国-东盟自由贸易协定(ACFTA)》", "Description": "注意：关税的征收，是跟着“物流”和“货物的原产地”走的，所以应关注中国与越南的关税。", "Source": ""}, {"Category": "国际协定", "Policy": "", "Description": "核心内容", "Source": ""}, {"Category": "国际协定", "Policy": "", "Description": "1.关税减让：绝大多数中国原产的工业品和原材料在进入越南时，适用双边协定税率，大量商品可享受 0% 关税。", "Source": ""}, {"Category": "国际协定", "Policy": "", "Description": "2.原产地规则：（只有符合原产地原则，才能享受零关税）（符合其中一个就行）。", "Source": ""}, {"Category": "国际协定", "Policy": "", "Description": "a.完全获得：在中国境内完全生产或提取;", "Source": ""}, {"Category": "国际协定", "Policy": "", "Description": "b.区域价值成分：产品在中国的增值部分不得低于 40%;", "Source": ""}, {"Category": "国际协定", "Policy": "", "Description": "c.税则归类改变：使用非原产材料加工后，成品的海关编码（HS Code）发生特定层级的改变;", "Source": ""}, {"Category": "国际协定", "Policy": "", "Description": "d.特定加工工序：在中国进行特定加工工序。", "Source": ""}, {"Category": "国际协定", "Policy": "", "Description": "3.原产地证书：中国销售方必须向中国海关或中国贸促会申请开具官方的原产地证书。", "Source": ""}, {"Category": "其他", "Policy": "《商业登记条例》", "Description": "立法目的", "Source": "网址：https://www.elegislation.gov.hk/hk/cap310"}, {"Category": "其他", "Policy": "", "Description": "1.确保所有在港经营业务的实体都记录在案，作为征收利得税的依据。", "Source": ""}, {"Category": "其他", "Policy": "", "Description": "2.公众及商业伙伴可通过登记资料了解企业基本情况，从而辅助交易决策并降低商业风险。", "Source": ""}, {"Category": "其他", "Policy": "", "Description": "适用对象", "Source": ""}, {"Category": "其他", "Policy": "", "Description": "本地有限公司、独资企业、合伙企业、外国公司的香港分行、在香港设有营业地点的社团或俱乐部。", "Source": ""}, {"Category": "其他", "Policy": "", "Description": "约束内容", "Source": ""}, {"Category": "其他", "Policy": "", "Description": "1.任何在香港经营业务的人士或公司，必须在开业后1个月内申请商业登记证。", "Source": ""}, {"Category": "其他", "Policy": "", "Description": "2.必须取得有效的商业登记证，并在营业地点展示。", "Source": ""}, {"Category": "其他", "Policy": "", "Description": "3.业务详情（如名称、地址、合伙人变更）如有变动，须在 1 个月内书面通知税务局，登记证需每年续期并缴费。", "Source": ""}, {"Category": "其他", "Policy": "", "Description": "4.业务停止经营后，须在 1 个月内通知税务局注销登记。", "Source": ""}, {"Category": "其他", "Policy": "", "Description": "5.经营业务的人有责任缴付订明的商业登记费及征费，若业务其后结束，已缴付的商业登记费或征费通常不得退回。", "Source": ""}, {"Category": "其他", "Policy": "", "Description": "6.无证经营、逾期续期或提供虚假信息，均可能被处以罚款。", "Source": ""}, {"Category": "其他", "Policy": "", "Description": "核心内容", "Source": ""}, {"Category": "其他", "Policy": "", "Description": "1.2026 年新规：由 2026 年4 月1 日起，恢复征收 $150 港元的破产欠薪征费。一年证总费用通常为 $2,350 港元（$2,200 登记费 + $150 征费）。", "Source": ""}, {"Category": "其他", "Policy": "", "Description": "2.企业可选择 1 年期 或 3 年期 的登记证。3 年期证通常能锁定规费，避免期间因政策调整而提价。", "Source": ""}, {"Category": "其他", "Policy": "", "Description": "3.用于 2026年4月1日或之后提出的商业登记申请，以及该日期或之后开始生效的新申请或更新的商业登记证。", "Source": ""}, {"Category": "会计准则", "Policy": "HKFRS —— 香港财务报告准则", "Description": "核心目标与原则", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "要求财务报表“真实而中肯地反映”务状况。", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "资产计量", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "广泛使用公允价值模型(如投资性房地产、金融工具)，并需进行减值测试。", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "商誉与无形资产", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "商誉需至少每年进行减值测试，不得摊销。其他无形资产按规定摊销或进行减值测试。", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "企业合并与合并报表", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "要求编制完整的合并报表，采用购买法，并可能涉及复杂的公允价值分配。", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "披露要求", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "披露要求最全面、最详尽，包括分部报告、管理层评论、关联交易、金融风险等。", "Source": ""}, {"Category": "会计准则", "Policy": "HKFRS for Private Entities —— 私营企业香港财务报告准则", "Description": "核心目标与原则", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "提供独立完整的简化准则，不强制要求报表达到“真实而中肯地反映”。", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "资产计量", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "普遍采用历史成本法，避免了复杂的公允价值计量。", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "商誉与无形资产", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "商誉和其他使用寿命不确定的无形资产可在最长10年内摊销，极大简化了处理。", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "企业合并与合并报表", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "对合并报表的要求大幅简化，避免了一些复杂的合并调整。", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "披露要求", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "删除了大量与私营企业无关的披露要求，报表附注大幅精简。", "Source": ""}, {"Category": "会计准则", "Policy": "SME-FRF & SME-FRS —— 中小企业财务报告框架及准则（海利得适用）", "Description": "核心目标与原则", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "在HKFRS基础上的简化，不要求报表达到“真实而中肯地反映”。", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "资产计量", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "普遍采用历史成本法，不要求资产以公允价值计量。", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "商誉与无形资产", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "处理方式与HKFRS-PE类似，允许商誉在一定年限内摊销，简化了后续计量。", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "企业合并与合并报表", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "对符合条件的小型集团，可能豁免编制合并报表，要求大幅降低。", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "披露要求", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "披露要求最为简化，省略了如分部报告、业务审视等主题。", "Source": ""}, {"Category": "会计法规", "Policy": "《审计准则（HKSA）》", "Description": "1.香港审计准则（HKSA ）与国际审计准则（ISA）完全接轨，该报告在国际上具有极高的认可度。", "Source": ""}, {"Category": "会计法规", "Policy": "", "Description": "2.这是审计师当前执业必须遵循的核心准则，涵盖了从基本原则、审计流程到报告编制的所有环节。审计准则约束会计师，为了在法律和商业层面构建一套信任机制。", "Source": ""}, {"Category": "会计法规", "Policy": "《专业会计师条例》", "Description": "立法目的", "Source": "网址：https://www.elegislation.gov.hk/hk/cap50"}, {"Category": "会计法规", "Policy": "", "Description": "1.正式成立“香港会计师公会 (HKICPA)”，赋予其监管全港会计行业的法定权力。授权公会制定并强制执行财务报告 准则及审计准则。", "Source": ""}, {"Category": "会计法规", "Policy": "", "Description": "2.确保唯有具备专业胜任能力、符合道德操守的专业人士方可对外提供审计和鉴证服务，维护金融市场信用。", "Source": ""}, {"Category": "会计法规", "Policy": "《会计及财务汇报局条例》", "Description": "立法目的", "Source": "网址：https://www.elegislation.gov.hk/hk/cap159A"}, {"Category": "会计法规", "Policy": "", "Description": "1.建立一个独立于会计行业的监管机构（AFRC），提升香港金融市场的国际公信力。", "Source": ""}, {"Category": "会计法规", "Policy": "", "Description": "2.确保公众利益实体的财务报告真实可靠，防范系统性财务舞弊风险。", "Source": ""}, {"Category": "会计法规", "Policy": "", "Description": "适用对象", "Source": ""}, {"Category": "会计法规", "Policy": "", "Description": "会计专业人员、会计师事务所及审计执业单位以及公众利益实体。", "Source": ""}, {"Category": "会计法规", "Policy": "", "Description": "核心内容", "Source": ""}, {"Category": "会计法规", "Policy": "", "Description": "1.监管会计师及执业会计师，调查审计违规与财务报告不当行为。", "Source": ""}, {"Category": "会计法规", "Policy": "", "Description": "2.在 AFRC 进行调查或搜查时，相关人员必须提供账簿、记录及解释，不得阻碍。", "Source": ""}, {"Category": "会计法规", "Policy": "", "Description": "3.AFRC可以就上市公司财务报告不符合会计准则的情况展开调查，并通过监管审计师及纪律程序施压，必要时将案件转介至其他执法机构或法院处理。", "Source": ""}, {"Category": "税法", "Policy": "《税务条例》", "Description": "立法目的", "Source": "网址：https://www.elegislation.gov.hk/hk/cap112"}, {"Category": "税法", "Policy": "", "Description": "1.明确仅对来源于香港的利润和收入征税，不实施全球征税。", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "2.通过法律形式固定低税率制度，吸引国际资本与人才。", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "3.打击逃税行为，落实国际税务合作。", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "主要税种", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "1.利得税：针对公司利润，一般税率16.5%，首200万利润可享8.25%优惠税率。", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "2.薪俸税：针对个人入息，采用累进税率（2%-17%）或15%标准税率，两者取其低。", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "3.物业税：针对物业租金收入，税率为净租金的15%。", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "税收优惠政策", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "1.股息免税、资本利得不征税。", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "2.研发加计扣除：对于合资格研发开支，首 200 万港元可获 300% 扣税，余额获 200% 扣税。", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "3.2026课税年度利得税一次性宽减：应缴利得税提供100%减免，但每个纳税单位最多减3,000港元。", "Source": ""}, {"Category": "税法", "Policy": "《印花税条例》", "Description": "立法目的", "Source": "网址：https://www.elegislation.gov.hk/hk/cap117!zh-Hant-HK"}, {"Category": "税法", "Policy": "", "Description": "对特定的法律文件（而非交易本身）征税，确保文件的法律效力。", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "核心范围", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "针对不动产转让、租约和股份转让的文书征税。", "Source": ""}, {"Category": "税收协定", "Policy": "《香港——中国内地避免双重征税协定》股息分红", "Description": "1.协定优惠税率：0%（实际），上限5%或10%", "Source": ""}, {"Category": "税收协定", "Policy": "", "Description": "2.中国内地母公司征税并抵免。中国内地对收到分红征税，但准予抵免已在香港缴纳的税款。由于是100%全资控股，可直接申请“间接抵免”底层企业所得税。", "Source": ""}, {"Category": "税收协定", "Policy": "", "Description": "3.香港子公司不征收预提税。根据香港目前国内法，对向境外支付的分红不征收预提所得税。", "Source": ""}, {"Category": "税收协定", "Policy": "", "Description": "4.适用条件：a. 税率梯度：中国内地母公司直接持股 >=25% 适用 5% 协定上限；持股则适用 10% 。\nb. 身份与反避税：中国内地母公司必须是“受益所有人”，且满足“主要目的测试(PPT)”。", "Source": ""}, {"Category": "税收协定", "Policy": "《香港——中国内地避免双重征税协定》贷款利息", "Description": "1.协定优惠税率：7%", "Source": ""}, {"Category": "税收协定", "Policy": "", "Description": "2.中国内地母公司征税并抵免。中国内地对收到的利息征税，并允许抵免已在香港缴纳的7%税款。", "Source": ""}, {"Category": "税收协定", "Policy": "", "Description": "3.香港子公司限制征税。香港作为来源国对支付给中国内地的利息，预提税最高限定在7%。", "Source": ""}, {"Category": "税收协定", "Policy": "", "Description": "4.适用条件：a. 合规红线：利息率必须符合“独立交易原则”，超额部分不享受协定优惠。b.中国内地母公司必须是利息的“受益所有人”。", "Source": ""}, {"Category": "近期税务改革方向", "Policy": "《2024年税务（修订）（跨国企业集团的最低税）条例草案》", "Description": "立法目的", "Source": "网址：https://www.ird.gov.hk/chs/welcome.htm"}, {"Category": "近期税务改革方向", "Policy": "", "Description": "落实 BEPS 2.0 全球最低税准则，防止税基侵蚀与利润移转。", "Source": ""}, {"Category": "近期税务改革方向", "Policy": "", "Description": "生效时间", "Source": ""}, {"Category": "近期税务改革方向", "Policy": "", "Description": "2025年1月1日生效。", "Source": ""}, {"Category": "近期税务改革方向", "Policy": "", "Description": "核心内容", "Source": ""}, {"Category": "近期税务改革方向", "Policy": "", "Description": "在最近4个财年中，至少有2个财年的全球合并年收入达7.5亿欧元或以上的跨国企业集团，实施15% 的全球最低税及香港本地补足税。", "Source": ""}, {"Category": "近期税务改革方向", "Policy": "《2025年印花税（修订）条例草案》", "Description": "生效时间", "Source": ""}, {"Category": "近期税务改革方向", "Policy": "", "Description": "2025年2月26日起生效。", "Source": ""}, {"Category": "近期税务改革方向", "Policy": "", "Description": "核心内容", "Source": ""}, {"Category": "近期税务改革方向", "Policy": "", "Description": "将征收100元印花税的物业价值上限由300万港元提高至400万港元。", "Source": ""}], "欧洲": [{"Category": "", "Policy": "政策科目", "Description": "合规性描述与核心实务摘要", "Source": "原始数据源"}, {"Category": "大方向经济制度与政策", "Policy": "欧盟《多年期财务框架（2021-2027年长期预算）》", "Description": "核心内容", "Source": "网址：https://commission.europa.eu/strategy-and-policy/eu-budget/long-term-eu-budget/2021-2027/whats-new_en"}, {"Category": "大方向经济制度与政策", "Policy": "", "Description": "1.对乌克兰的关键支持：一项新的乌克兰援助基金，以赠款、贷款和担保为基础，在 2024 年至 2027 年期间的总规模为 500 亿欧元，将满足乌克兰的迫切需求。", "Source": ""}, {"Category": "大方向经济制度与政策", "Policy": "", "Description": "2.加强主权和竞争力：欧洲战略技术平台将提供新的灵活性和激励措施，以及向欧洲防务基金追加 15 亿欧元，来提升欧盟的长期竞争力。", "Source": ""}, {"Category": "大方向经济制度与政策", "Policy": "", "Description": "3.进一步应对移民和外部挑战：增加 96 亿欧元将支持移民的内部和外部层面，并帮助西巴尔干地区、南部邻国及其他地区的合作伙伴。", "Source": ""}, {"Category": "大方向经济制度与政策", "Policy": "", "Description": "4.紧急援助储备：应对突发情况，应对不断上涨的通货膨胀和利息成本，灵活工具将增加 20 亿欧元，而紧急援助储备的上限将增加 15 亿欧元。", "Source": ""}, {"Category": "其他", "Policy": "欧盟《反倾销基本条例》", "Description": "立法目的", "Source": "网址：https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX%3A02016R1036-20200811"}, {"Category": "其他", "Policy": "", "Description": "1.针对那些出口价格低于其国内市场价格（即“倾销”）的产品，通过征收附加关税，将其价格拉回正常水平。", "Source": ""}, {"Category": "其他", "Policy": "", "Description": "2.落实世界贸易组织的反倾销协议，确保贸易在“非歧视”原则下进行。", "Source": ""}, {"Category": "其他", "Policy": "", "Description": "适用对象", "Source": ""}, {"Category": "其他", "Policy": "", "Description": "出口至欧盟的非欧盟国家企业：无论产品直接来自生产国，还是经过新加坡、香港等中转港。", "Source": ""}, {"Category": "其他", "Policy": "欧盟《市场滥用条例》", "Description": "立法目的", "Source": "网址：https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX%3A02014R0596-20241204"}, {"Category": "其他", "Policy": "", "Description": "确保所有市场参与者处于平等的竞争地位，拥有同等获取信息的权利，是维护金融市场透明度和投资者信心而制定的核心法案。", "Source": ""}, {"Category": "其他", "Policy": "", "Description": "核心内容", "Source": ""}, {"Category": "其他", "Policy": "", "Description": "1.禁止内幕交易与泄密：掌握未公开且足以影响股价的重大信息时，严禁自行或建议他人进行买卖并透露给任何第三方。", "Source": ""}, {"Category": "其他", "Policy": "", "Description": "2.禁止市场操纵：严禁通过传播虚假或误导性信息、进行“洗售”或虚假申报等手段，人为干扰金融工具的正常价格或供需。", "Source": ""}, {"Category": "其他", "Policy": "", "Description": "3.禁止违规披露与内幕人失控：发生可能影响股价的重大事件时，必须立即向公众披露；同时必须建立并严格管理内幕人名单。", "Source": ""}, {"Category": "会计准则", "Policy": "《国际财务报告准则（IFRS）》", "Description": "立法目的", "Source": "网址：https://www.ifrs.org/issued-standards/list-of-standards/#"}, {"Category": "会计准则", "Policy": "", "Description": "让不同国家的企业报表具有可比性，通过高度的透明度来换取全球资本的信任。", "Source": ""}, {"Category": "会计法规", "Policy": "《欧盟会计指令》 2013/34/EU", "Description": "立法目的", "Source": "网址：https://eur-lex.europa.eu/eli/dir/2013/34/oj?utm_source=chatgpt.com"}, {"Category": "会计法规", "Policy": "", "Description": "1.欧盟规范成员国境内公司财务报表编制、列报及审计的核心法律框架。", "Source": ""}, {"Category": "会计法规", "Policy": "", "Description": "2.确保在不同欧盟成员国注册的公司，其财务报表具有基本的对比性和透明度。", "Source": ""}, {"Category": "会计法规", "Policy": "", "Description": "适用对象", "Source": ""}, {"Category": "会计法规", "Policy": "", "Description": "有限责任公司（股份有限公司、有限责任公司）、集团公司中的子公司。", "Source": ""}, {"Category": "会计法规", "Policy": "", "Description": "核心内容", "Source": ""}, {"Category": "会计法规", "Policy": "", "Description": "1.根据资产负债表总额、净营业额和平均员工人数三个指标，将企业分为微型、小型、中型和大型，不同规模的企业享有不同的报告简化程度。", "Source": ""}, {"Category": "会计法规", "Policy": "", "Description": "2.它不直接在成员国生效，而是设定目标，由成员国通过国内法来落地。", "Source": ""}, {"Category": "会计法规", "Policy": "", "Description": "3.明确了资产负债表、损益表及财务报表附注的强制性披露内容，并针对中大型企业提出了更高层级的披露要求。", "Source": ""}, {"Category": "税法", "Policy": "《最低企业税指令》", "Description": "立法目的", "Source": "网址：https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX%3A02022L2523-20221222"}, {"Category": "税法", "Policy": "", "Description": "1.防止各国通过竞相降低税率来吸引跨国公司，确保全球税收公平。", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "2.遏制通过将利润转移到避税天堂或低税收辖区来减少纳税的行为。", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "适用对象", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "在过去四个财年中，至少有两个财年的合并年营业额达到或超过 7.5 亿欧元的大型跨国企业集团。", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "核心内容", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "1.补足税 ：如果某个子公司在特定辖区的实际税率低于 15%，则需要缴纳补足税。", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "2.补足税额 = (15% - 实际税率) × 该辖区的超额利润。", "Source": ""}, {"Category": "税法", "Policy": "《反避税指令》", "Description": "立法目的", "Source": "网址：https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX%3A02016L1164-20220101"}, {"Category": "税法", "Policy": "", "Description": "防止跨国公司利用各成员国税法之间的差异进行不当节税。", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "适用对象", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "所有需缴纳企业所得税的实体。", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "核心内容", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "1.超额借款成本超过特定门槛（通常为300万欧元）后，其在税前扣除的金额不得超过息税折旧摊销前利润的30%。", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "2.如果受控的外国子公司被判定为缺乏实质性经济活动，且其所在国的实际税负显著低于母公司所在国，母公司需对低税区子公司的特定被动收入直接缴税。", "Source": ""}, {"Category": "税法", "Policy": "《增值税指令 》", "Description": "立法目的", "Source": "网址：https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX%3A02006L0112-20250414"}, {"Category": "税法", "Policy": "", "Description": "协调成员国增值税制度，消除跨境税收障碍，确保税收中立与公平竞争。", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "核心内容", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "1.税款通常在货物或服务消费地缴纳，而非生产地。", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "2.在生产和流通的每个环节征税，但企业可以抵扣其购进环节已缴纳的进项税，最终仅对增值部分缴税。", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "3.各成员国不得低于 15%，此外允许设一至两个减征税率（不得低于 5%）。", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "4.对发票的要素（如税号、应税金额、税率等）进行了标准化规定，并接受电子发票。", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "5.B2B 服务：通常在客户所在地征税。", "Source": ""}, {"Category": "税法", "Policy": "《进口增值税新规》（2028.7.1年生效）", "Description": "核心内容", "Source": "网址：https://www.consilium.europa.eu/en/press/press-releases/2025/07/18/vat-council-formally-adopts-new-rules-simplifying-tax-collection-for-imports/"}, {"Category": "税法", "Policy": "", "Description": "1.为进一步打击低价值进口商品造成的市场竞争扭曲，使其在最终消费地负有进口环节和远程销售环节的增值税缴纳义务，从而促使更多供应商注册使用 IOSS 方案。", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "2.为了保障增值税征收，欧盟允许成员国将间接海关代表或相关责任方列为进口增值税的连带责任人。", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "3.为避免因供应商失职导致商品被海关扣押伤害消费者，允许特定条件下，由消费者支付应缴增值税，以换取商品放行，同时保留消费者向供应商追偿的权利。", "Source": ""}], "丹麦": [{"Category": "", "Policy": "政策科目", "Description": "合规性描述与核心实务摘要", "Source": "原始数据源"}, {"Category": "大方向经济制度与政策", "Policy": "丹麦《年度国家预算》", "Description": "核心内容", "Source": "网址：https://fm.dk/udgivelser/2025/august/forslag-til-finanslov-for-finansaaret-2026/?utm_source=chatgpt.com"}, {"Category": "大方向经济制度与政策", "Policy": "", "Description": "1.国家支出上限： 2026年设为6610亿丹麦克朗，并预计在后续年份逐年增长。", "Source": ""}, {"Category": "大方向经济制度与政策", "Policy": "", "Description": "2.支持企业出海：支持丹麦企业增加出口、实现国际化，并吸引外国投资进入丹麦。", "Source": ""}, {"Category": "大方向经济制度与政策", "Policy": "", "Description": "3.派驻员工合作： 丹麦外交部可以与私营企业等达成合作协议，允许这些企业在丹麦驻外使领馆派遣、雇佣或安置企业员工。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "丹麦《公司法》 (ApS Act)", "Description": "立法目的", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "在促进经济发展的同时，通过公司治理、信息披露与资本规则，实现对股东、债权人及市场秩序的综合保护，并与欧盟法律体系保持协调。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "适用对象", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "私人有限责任公司 (ApS)和股份有限公司（A/S）。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "私人有限责任公司和股份有限公司差别", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "私人有限公司：1.最低注册资本：400,000 丹麦克朗；2.资本到位要求：注册时通常需全额实缴；3.管理架构：灵活，可仅设执行董事会；4.成员数量：至少 1 名执行董事；5.股份转让：相对私密，受公司章程限制较多。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "股份有限公司：1.最低注册资本：20,000 丹麦克朗；2.资本到位要求：至少实缴 25%（但不得低于 100,000 丹麦克朗）；3.管理架构：强制，必须设立董事会及执行董事会；4.成员数量：董事会至少 3 名成员；5.股份转让：股份可自由转让，可申请上市。", "Source": ""}, {"Category": "会计准则", "Policy": "丹麦《财务报表法》", "Description": "立法目的", "Source": "网址：https://www.retsinformation.dk/eli/lta/2026/402"}, {"Category": "会计准则", "Policy": "", "Description": "规范企业财务信息披露以确保其真实、公允和可比，保护投资者与债权人利益、提高市场透明度，并与欧盟会计制度及国际财务报告准则保持协调。", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "国际财务报告准则和丹麦财务报表法对比", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "1.上市公司合并财务报表，默认国际财务报告准则（强制）", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "2.上市公司单体财务报表，丹麦《财务报表法》或国际财务报告准则（可选择）", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "3.非上市公司（所有规模）的财务报表，丹麦《财务报表法》或国际财务报告准则（可选择）", "Source": ""}, {"Category": "税法", "Policy": "《公司税法》 ", "Description": "立法目的", "Source": "网址：https://www.retsinformation.dk/eli/lta/2025/279"}, {"Category": "税法", "Policy": "", "Description": "确保在丹麦产生经济价值的企业承担相应的公共财政义务。", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "适用范围", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "1.无限纳税义务：在丹麦注册的公司，其全球收入需在丹麦纳税。", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "2.有限纳税义务：非丹麦注册公司，但通过在丹麦的常设机构获得收入，或从丹麦获得特定收入（如股利、利息、特许权使用费）。", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "核心内容", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "1.企业所得税率：统一为 22%。", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "2.股利税：如果持股 ≥ 10% 且符合特定条件，母公司收到的股利通常免税，否则按 22% 征税。", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "3.资本利得税：出售持股超过 10% 的子公司股份所得收益通常免税，出售少于 10% 的上市股票收益需课税。", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "4.研发加计扣除：符合条件的研发支出可按 108% 进行税前扣除，并逐步上调，2026年已为114%。", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "5.超额借款成本限制：如果企业的超额借款成本超过 300 万欧元，其税前可扣除金额不得超过该企业息税折旧摊销前利润的 30%。", "Source": ""}, {"Category": "税法", "Policy": "《增值税法》 ", "Description": "立法目的", "Source": "网址：https://www.retsinformation.dk/eli/lta/2019/1021?utm_source=chatgpt.com"}, {"Category": "税法", "Policy": "", "Description": "确保财政收入，与欧盟《增值税指令》保持高度一致，以消除跨境贸易壁垒。", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "适用对象", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "1.在丹麦境内独立开展经济活动的所有实体。", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "2.如果企业在连续12个月内的营业额超过50,000丹麦克朗，则该企业必须办理增值税登记。", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "核心内容", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "1.丹麦不设阶梯税率，全境统一为 25%。", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "2.只有在丹麦境内消费的行为才征税，出口至欧盟外或销售至其他欧盟国家的 B2B 交易通常适用零税率或反向征收。", "Source": ""}, {"Category": "税法", "Policy": "", "Description": "3.纳税申报周期：小规模企业（< 500万 DKK）：半年申报；中规模企业（500万 - 5000万 DKK）：季度申报；大规模（企业> 5000万 DKK）：月度申报。", "Source": ""}, {"Category": "税收协定", "Policy": "《丹麦——中国避免双重征税协定》股息分红", "Description": "1.协定优惠税率：上限5%或10%", "Source": "网址：https://skm.dk/love/internationalt/dobbeltbeskatningsoverenskomster#/?page=1"}, {"Category": "税收协定", "Policy": "", "Description": "2.中国母公司征税并抵免。中国母公司取得丹麦的收入，丹麦已缴纳的税款可以用来抵免中国的应纳税额。由于母公司持股达到20%以上，在计算抵免额时，允许将丹麦子公司缴纳的底层企业所得税也考虑在内（间接抵免）。", "Source": ""}, {"Category": "税收协定", "Policy": "", "Description": "3.限制征税。丹麦作为来源国，如果股息的受益人是中国，其征收的预提税不得超过5%或10%。", "Source": ""}, {"Category": "税收协定", "Policy": "", "Description": "4.适用条件：a. 税率梯度：中国母公司直接持股 >=25% 适用 5% 协定上限 (100%控股适用此项)；持股不足 25% 则适用 10% 协定上限。\nb. 身份与反避税：中国母公司必须是“受益所有人”，且满足“主要目的测试(PPT)”。", "Source": ""}, {"Category": "税收协定", "Policy": "《丹麦——中国避免双重征税协定》贷款利息", "Description": "1.协定优惠税率：10%", "Source": ""}, {"Category": "税收协定", "Policy": "", "Description": "2.中国母公司征税并抵免。中国对收到的利息征税，并允许将已在丹麦缴纳的税款进行抵免。", "Source": ""}, {"Category": "税收协定", "Policy": "", "Description": "3.丹麦子公司限制征税。丹麦作为来源国对支付给中国的利息，预提税不得超过利息总额的10%。", "Source": ""}, {"Category": "税收协定", "Policy": "", "Description": "4.适用条件：a. 统一上限：利息预提税上限锁定为10%。\nb. 独立交易原则（公允利率）：如果双方存在特殊关系，导致支付的利息超过了无关联情况下的公允金额，则10%的优惠仅适用于公允金额部分，超出的部分丹麦有权根据其国内法进行征税。\nc. 中国母公司必须是利息的“受益所有人”。", "Source": ""}], "美国": [{"Category": "", "Policy": "政策科目", "Description": "合规性描述与核心实务摘要", "Source": "原始数据源"}, {"Category": "大方向经济制度与政策", "Policy": "《美国政府预算：2027财年》", "Description": "核心内容", "Source": "网址：https://www.govinfo.gov/app/collection/budget/2027"}, {"Category": "大方向经济制度与政策", "Policy": "", "Description": "1.预算总额：2027财年的联邦国防预算总额为2.2万亿美元，反映了极高的财政扩张需求。", "Source": ""}, {"Category": "大方向经济制度与政策", "Policy": "", "Description": "2.赤字预测：年度赤字预计将扩大至 2.2 万亿美元，占 GDP 的比重依然维持在 5.9% 的高位。", "Source": ""}, {"Category": "大方向经济制度与政策", "Policy": "", "Description": "3.国防预算激增：国防支出请求额达到了史无前例的 1.5 万亿美元，旨在全面扩充军事工业产能。", "Source": ""}, {"Category": "大方向经济制度与政策", "Policy": "", "Description": "4.关税收入目标：预算案设定了 4,640 亿美元 的年度关税收入目标，暗示将推行更为激进的全球关税政策。", "Source": ""}, {"Category": "大方向经济制度与政策", "Policy": "", "Description": "5.支持化石能源：投入专款用于公共土地的石油和天然气开采，试图通过能源自给来对冲国内通胀。", "Source": ""}, {"Category": "大方向经济制度与政策", "Policy": "乔治亚州《2027财年综合拨款法案》", "Description": "1.预算总规模：州级资金预算总额约为 385 亿美元，若算上联邦拨款和各类专项基金，总支出规模超过 764 亿美元。", "Source": ""}, {"Category": "大方向经济制度与政策", "Policy": "", "Description": "2.核心收入来源：州政府预计 2027 财年的总库收入约为 385 亿美元，其中最大的支柱依然是个人所得税和消费销售税。", "Source": ""}, {"Category": "大方向经济制度与政策", "Policy": "", "Description": "3.双税并降：法案明确将个人所得税和企业所得税的税率统一降低至 4.99%（2026年为 5.19%）。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "《乔治亚州有限责任公司法》", "Description": "立法目的", "Source": "网址：https://law.justia.com/codes/georgia/title-14/chapter-11/"}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "1.简化合规：摆脱股份有限公司那种强制性的董事会、年度会议和繁琐的纪要要求，降低运营成本。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "2.提供双重保护：既保护成员不为公司债务承担个人责任，也保护公司资产不轻易被成员的个人债权人追索。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "适用对象", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "在乔治亚州注册的所有有限责任公司。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "核心内容", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "1.若公司无法支付日常营运中到期的正常债务或公司总资产少于总负债，有限责任公司不得向成员分配利润。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "2.允许一人所有且一人管理，明确允许单一成员担任唯一经理，行使所有职权，无需设秘书或总裁。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "3.每年 4 月 1 日前必须向州务卿提交年度登记。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "4.必须在乔治亚州始终维持一名注册代理人和办事处地址。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "5.有限责任公司的债务、义务和责任仅由 有限责任公司承担。成员或经理仅因其自身行为负责，不对公司的亏损承担个人赔偿。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "6.任何成员在发出合理通知后，都有权在正常营业时间查阅并复印文件记录，公司不得无故拒绝。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "7.乔治亚州有限责任公司不设定最低注册资本。", "Source": ""}, {"Category": "公司相关法规与政策", "Policy": "乔治亚州法典", "Description": "第十章：商业与贸易", "Source": "  网址：https://law.justia.com/codes/georgia/title-10/"}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "第十四章：公司、合伙企业和协会  ", "Source": "网址：https://law.justia.com/codes/georgia/title-14/"}, {"Category": "公司相关法规与政策", "Policy": "", "Description": "第四十八章：收入和税收 ", "Source": "网址：https://law.justia.com/codes/georgia/title-48/"}, {"Category": "国际协定", "Policy": "中国与美国：WTO《贸易便利化协定》", "Description": "注意：关税的征收，是跟着“物流”和“货物的原产地”走的，所以应关注中国与美国的关税。", "Source": "网址：https://www.wto.org/english/docs_e/legal_e/legal_e.htm"}, {"Category": "国际协定", "Policy": "", "Description": "核心内容", "Source": ""}, {"Category": "国际协定", "Policy": "", "Description": "1.通关程序简化：推动电子申报和电子支付，限制不必要的重复检查。", "Source": ""}, {"Category": "国际协定", "Policy": "", "Description": "2.提高贸易规则公开程度：提供预裁定，提前确定商品归类/税率。", "Source": ""}, {"Category": "国际协定", "Policy": "", "Description": "3.加快货物放行与通关速度：尽快放行货物，推广单一窗口，企业只需一次提交资料。", "Source": ""}, {"Category": "国际协定", "Policy": "", "Description": "4.跨境监管合作与费用约束：海关与边检协同，减少不合理的收费和罚款。", "Source": ""}, {"Category": "国际协定", "Policy": "越南与美国《世贸组织（WTO）原产地规则协定》", "Description": "关税的征收，是跟着“物流”和“货物的原产地”走的，所以应关注越南与美国之间的关税。", "Source": "网址：https://www.mti.gov.sg/trade-international-economic-relations/agreements/free-trade-agreements-fta/"}, {"Category": "国际协定", "Policy": "", "Description": "核心内容", "Source": ""}, {"Category": "国际协定", "Policy": "", "Description": "1.原产地证书：越南需申领原产地证书。", "Source": ""}, {"Category": "国际协定", "Policy": "", "Description": "2.原产地规则（只有符合原产地规则，才能享受零关税）（符合其中一个就行）：", "Source": ""}, {"Category": "国际协定", "Policy": "", "Description": "a.完全获得：在越南境内完全生产或提取；", "Source": ""}, {"Category": "国际协定", "Policy": "", "Description": "b.区域价值成分：产品在越南的增值部分不得低于 40%；", "Source": ""}, {"Category": "国际协定", "Policy": "", "Description": "c.税则归类改变：使用非原产材料加工后，成品的海关编码（HS Code）发生特定层级的改变；", "Source": ""}, {"Category": "国际协定", "Policy": "", "Description": "d.特定加工工序：在越南进行特定加工工序。", "Source": ""}, {"Category": "其他", "Policy": "《联邦贸易委员会法》", "Description": "立法目的", "Source": "网址：https://www.ftc.gov/legal-library/browse/statutes/federal-trade-commission-act"}, {"Category": "其他", "Policy": "", "Description": "防止垄断、价格操纵和不正当的竞争手段。打击市场上的欺诈、虚假宣传和不诚实行为。", "Source": ""}, {"Category": "其他", "Policy": "", "Description": "适用对象", "Source": ""}, {"Category": "其他", "Policy": "", "Description": "几乎覆盖所有商业实体。", "Source": ""}, {"Category": "其他", "Policy": "", "Description": "核心内容", "Source": ""}, {"Category": "其他", "Policy": "", "Description": "1.所有广告和推广材料必须真实且无误导性。", "Source": ""}, {"Category": "其他", "Policy": "", "Description": "2.只有品的全部或几乎全部的重要部件和加工过程均源于美国，且最终组装发生在美国，才能在广告、包装或合同中打上“Made in USA”字样。", "Source": ""}, {"Category": "会计准则", "Policy": "IFRS（国际会计准则）（海利得适用）", "Description": "存货计价", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "严禁使用 后进先出法，仅允许先进先出法或加权平均法。", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "研发支出", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "研究支出费用化，开发支出可资本化（需满足商业可行性）。", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "减值准备冲回", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "允许冲回（商誉除外）。如果减值迹象消失，可恢复资产账面价值。", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "租赁会计", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "所有租赁均视为融资租赁（除短期或低价值外）。", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "公允价值重估", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "允许对土地、厂房等非金融资产进行公允价值重估。", "Source": ""}, {"Category": "会计准则", "Policy": "US GAAP（美国公认会计原则）", "Description": "存货计价", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "允许使用后进先出法。", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "研发支出", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "几乎全部费用化。支出在发生当年直接冲减利润。", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "减值准备冲回", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "禁止冲回。资产价值一旦减至低位，即便行情好转也不得调高。", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "租赁会计", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "区分经营租赁与融资租赁。", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "公允价值重估", "Source": ""}, {"Category": "会计准则", "Policy": "", "Description": "仅限于特定金融工具。", "Source": ""}, {"Category": "会计法规", "Policy": "《2025年乔治亚公共会计法》", "Description": "核心内容", "Source": "网址：https://www.legis.ga.gov/legislation/69570"}, {"Category": "会计法规", "Policy": "", "Description": "1.专业会计师门槛降低，会计专业人才不再极度稀缺。", "Source": ""}, {"Category": "会计法规", "Policy": "", "Description": "2.跨州/跨境审计更加便利，若业务扩展至美国其他州，外州的会计师不需要在乔治亚州额外考证就能直接出具有法律效力的报告。", "Source": ""}, {"Category": "会计法规", "Policy": "", "Description": "3.严格限定了只有符合资质的人才能签发鉴证报告。", "Source": ""}, {"Category": "会计法规", "Policy": "", "Description": "4.若业务涉及政府合同、银行大额授信或特定行业监管，法律要求这些财务报告必须由符合《2025年公共会计法》定义的 CPA 或事务所签字。", "Source": ""}, {"Category": "税收协定", "Policy": "《美国——中国避免双重征税协定》股息分红", "Description": "1.协定优惠税率：10%", "Source": ""}, {"Category": "税收协定", "Policy": "", "Description": "2.中国母公司征税并抵免。中国对收到分红征税，但准予抵免已在美国缴纳的税款。由于是100%全资控股，可直接申请“间接抵免”底层企业所得税。", "Source": ""}, {"Category": "税收协定", "Policy": "", "Description": "3.美国子公司限制征税。美国作为来源方，将其国内法通常30%的预提税率，锁定在协定上限10%。", "Source": ""}, {"Category": "税收协定", "Policy": "", "Description": "4.适用条件：a. 统一税率：中美协定不设持股阶梯，预提税上限均为10%。b. 身份要求：中国母公司必须是“受益所有人”，且满足“主要目的测试(PPT)”。c.反避税限制：必须符合协定议定书中的“利益限制”条款，即公司不是单纯为了骗取税收优惠而设立。", "Source": ""}, {"Category": "税收协定", "Policy": "《美国——中国避免双重征税协定》贷款利息", "Description": "1.协定优惠税率：10%", "Source": ""}, {"Category": "税收协定", "Policy": "", "Description": "2.中国母公司征税并抵免。中国对收到的利息征税，并允许抵免已在美国缴纳的10%税款。", "Source": ""}, {"Category": "税收协定", "Policy": "", "Description": "3.美国子公司限制征税。美国作为来源国对支付给中国的利息，预提税最高不超过10%", "Source": ""}, {"Category": "税收协定", "Policy": "", "Description": "4.适用条件：a. 公允交易：关联公司间的利率必须复合市场公允水平，超额部分不能享受10%优惠。b. 无常设机构联系：产生利息的债权与内地母公司在美国的常设机构无实际联系。c. 中国母公司必须是利息的“受益所有人”。", "Source": ""}]};
+    const framework = {
+        "经济制度与经济政策框架": ["大方向经济制度与政策", "公司相关法规与政策", "国际协定", "其他", "近期经济政策变动"],
+        "会计制度与政策": ["会计准则", "会计法规", "近期会计制度与政策动向"],
+        "税务制度与政策": ["税法", "税收协定", "近期税务改革动向"]
+    };
+    const regions = ['新加坡', '香港', '欧洲', '丹麦', '美国', '横向对比', '国际'];
+
+    let currentRegion = '新加坡';
+    let currentL1 = '经济制度与经济政策框架';
+    let currentL2 = '大方向经济制度与政策';
+
+    let compL1 = '经济制度与经济政策框架';
+    let compL2 = '大方向经济制度与政策';
+
+    const navTabs = document.getElementById('navTabs');
+    const sidebar = document.getElementById('sidebar');
+    const contentArea = document.getElementById('contentArea');
+    
+    let chartInstance = null;
+
+    function init() {
+        renderTabs();
+        renderSidebar();
+        renderContent();
+        
+        window.addEventListener('resize', () => {
+            if (chartInstance) {
+                chartInstance.resize();
+            }
+        });
+    }
+
+    function renderTabs() {
+        navTabs.innerHTML = '';
+        regions.forEach(r => {
+            const div = document.createElement('div');
+            let className = `nav-tab ${r === currentRegion ? 'active' : ''}`;
+            if (r === '横向对比' || r === '国际') {
+                className += ' special-tab';
+            }
+            div.className = className;
+            div.textContent = r;
+            div.onclick = () => {
+                currentRegion = r;
+                renderTabs();
+                renderSidebar();
+                renderContent();
+            };
+            navTabs.appendChild(div);
+        });
+    }
+
+    function renderSidebar() {
+        if (currentRegion === '国际' || currentRegion === '横向对比') {
+            sidebar.style.display = 'none';
+            return;
+        }
+        sidebar.style.display = 'block';
+        let html = '';
+        Object.keys(framework).forEach(l1 => {
+            html += `<div class="group-title">${l1}</div>`;
+            framework[l1].forEach(l2 => {
+                const isActive = (l2 === currentL2);
+                html += `<div class="menu-item ${isActive ? 'active' : ''}" onclick="selectMenu('${l1}', '${l2}')">
+                    ${l2}
+                    <div class="dot" style="display: ${isActive ? 'block' : 'none'};"></div>
+                </div>`;
+            });
+        });
+        sidebar.innerHTML = html;
+    }
+
+    function selectMenu(l1, l2) {
+        currentL1 = l1;
+        currentL2 = l2;
+        renderSidebar();
+        renderContent();
+    }
+
+    function renderContent() {
+        // 1. 横向对比专页：严格参考用户提供的多列卡片模板样式，顶部含联动下拉菜单
+        if (currentRegion === '横向对比') {
+            let html = `<h1>横向对比分析：${compL2}</h1>`;
+            html += `<div class="breadcrumb">所属分类：${compL1}</div>`;
+            
+            // 顶部下拉筛选条
+            html += `<div class="comp-filter-bar">
+                <label>选择要对比的类目：</label>
+                <select id="compL1Select" onchange="onCompL1Change(this)">`;
+            Object.keys(framework).forEach(l1 => {
+                html += `<option value="${l1}" ${l1 === compL1 ? 'selected' : ''}>${l1}</option>`;
+            });
+            html += `</select>
+                <select id="compL2Select" onchange="onCompL2Change(this)">`;
+            framework[compL1].forEach(l2 => {
+                html += `<option value="${l2}" ${l2 === compL2 ? 'selected' : ''}>${l2}</option>`;
+            });
+            html += `</select></div>`;
+
+            // 下方五列多列布局网格（新加坡、香港、欧洲、丹麦、美国）
+            const targetRegions = ['新加坡', '香港', '欧洲', '丹麦', '美国'];
+            html += `<div class="comp-columns-grid">`;
+            
+            targetRegions.forEach(reg => {
+                html += `<div class="region-column">
+                    <div class="region-column-header">📍 ${reg}</div>
+                    <div class="region-column-body">`;
+                
+                // 筛选出该地区对应分类下的数据
+                let rows = fullDb[reg] || [];
+                let searchKw = compL2.replace(/（.*?）/g, '').trim();
+                let filteredRows = rows.filter(r => r.Category && r.Category.includes(searchKw));
+                
+                if (filteredRows.length === 0) {
+                    html += `<div style="color: #999; font-size: 14px; text-align: center; padding: 20px;">暂无该分类数据</div>`;
+                } else {
+                    let currentPol = "";
+                    let hasSubCard = false;
+                    
+                    filteredRows.forEach(r => {
+                        let pol = (r.Policy || "").trim();
+                        let desc = (r.Description || "").trim();
+                        let src = (r.Source || "").trim();
+                        
+                        if (pol && pol !== currentPol) {
+                            if (hasSubCard) html += `</div>`;
+                            currentPol = pol;
+                            hasSubCard = true;
+                            html += `<div class="policy-sub-card">
+                                <div class="policy-sub-card-title">${pol}</div>`;
+                        } else if (!currentPol && !hasSubCard) {
+                            hasSubCard = true;
+                            html += `<div class="policy-sub-card">`;
+                        }
+                        
+                        if (desc) {
+                            let isKey = false;
+                            const explicitKeys = ['适用主体', '与IFRS关系', '收入确认方法', '合并报表要求', '计量与披露', '立法目的', '适用范围', '适用对象', '核心内容', '构成', '约束内容', '董事责任与投票', '公司注册', '股东权利与股东大会', '公司秘书', '年度申报', '会计记录与内部控制', '财务报告', '主要税种', '税收优惠政策', '核心范围', '征税范围与原则', '2026年度税务政策与修订专项'];
+                            if (explicitKeys.includes(desc) || (desc.length <= 15 && !desc.includes('。') && !/^[0-9]\./.test(desc))) {
+                                isKey = true;
+                            }
+                            if (isKey) {
+                                html += `<div class="item-title" style="margin-top:10px;">${desc}</div>`;
+                            } else {
+                                html += `<div class="item-desc">${desc}</div>`;
+                            }
+                        }
+                        
+                        if (src) {
+                            let urlMatch = src.match(/http[s]?:\/\/[^\s]+/);
+                            if (urlMatch) {
+                                html += `<div style="margin-top:8px; font-size:13px;"><a href="${urlMatch[0]}" target="_blank" style="color:#1a73e8; text-decoration:none;">🔗 ${src}</a></div>`;
+                            } else {
+                                html += `<div style="margin-top:8px; font-size:13px; color:#1a73e8;">${src}</div>`;
+                            }
+                        }
+                    });
+                    if (hasSubCard) html += `</div>`;
+                }
+                
+                html += `</div></div>`;
+            });
+
+            html += `</div>`;
+            contentArea.innerHTML = html;
+            return;
+        }
+
+        // 2. 国际海运分析专页
+        if (currentRegion === '国际') {
+            let html = `<h1>国际海运费趋势分析</h1>`;
+            html += `<div class="breadcrumb">国际 > 越南——美线海运费分析</div>`;
+            
+            html += `<div class="freight-chart-container" id="freightChart"></div>`;
+            
+            html += `<div class="freight-text">
+                <h3>📈 趋势洞察与原因分析</h3>
+                <div class="item-title">1. 2025年10月-12月 (走势分化)</div>
+                <div class="item-desc">受红海地缘危机及巴拿马运河干旱的双重打击，美东线面临极长的绕行时间和极高的不确定性。这促使大量原本发往美东的货主，主动将货物改道发往美国西海岸，这种替代效应增加了美西的舱位需求和价格，同时削弱了美东直航的需求。</div>
+                
+                <div class="item-title">2. 2026年1月-2月 (触底回落)</div>
+                <div class="item-desc">1月底至2月正值越南以及上游中国供应链的农历新年假期，制造业大面积停工放假，导致出口货源减少。船公司为了不让船舶亏损，放出了大量的特价舱位，通过低价刺激出货，直接拉低了当月的实际成交均价。</div>
+                
+                <div class="item-title">3. 2026年3月-6月 (全线暴涨)</div>
+                <div class="item-desc">1. 中东局势持续紧张，全球原油价格处于高位，前往美东的船舶被迫绕行非洲好望角，航程大幅拉长导致燃油消耗激增，船公司随之向货主征收高昂的燃油附加费。<br>2. 市场火热，进入欧美市场的传统旺季（存在旺季附加费）。<br>3. 关税政策预期导致中国市场大量提前出货后，引发了东南亚区域舱位极度紧张，运价于6月突破新高。</div>
+            </div>`;
+            
+            contentArea.innerHTML = html;
+            setTimeout(renderECharts, 100);
+            return;
+        }
+
+        // 3. 地区具体政策数据页面
+        const rawData = fullDb[currentRegion] || [];
+        const searchKeyword = currentL2.replace(/（.*?）/g, '').trim();
+        
+        let filtered = rawData.filter(row => row.Category && row.Category.includes(searchKeyword));
+        
+        let html = `<h1>${currentL2}</h1>`;
+        html += `<div class="breadcrumb">${currentRegion} > ${currentL1.replace(/（.*?）/, '')}</div>`;
+        
+        if (filtered.length === 0) {
+            html += `<div class="card">
+                <div class="item-desc" style="color:#888;">当前分类暂无结构化政策数据。</div>
+            </div>`;
+            contentArea.innerHTML = html;
+            return;
+        }
+        
+        let currentPolicy = "";
+        let cardHtml = "";
+        
+        filtered.forEach(row => {
+            let pol = (row.Policy || "").trim();
+            let desc = (row.Description || "").trim();
+            let src = (row.Source || "").trim();
+            
+            if (pol && pol !== currentPolicy) {
+                if (cardHtml !== "") cardHtml += `</div>`;
+                currentPolicy = pol;
+                cardHtml += `<div class="card">`;
+                cardHtml += `<div class="card-title">${pol}</div>`;
+            } else if (!currentPolicy && cardHtml === "") {
+                cardHtml += `<div class="card">`;
+            }
+            
+            if (desc) {
+                let isKey = false;
+                const explicitKeys = [
+                    '适用主体', '与IFRS关系', '收入确认方法', '合并报表要求', '计量与披露', 
+                    '立法目的', '适用范围', '适用对象', '核心内容', '构成', '约束内容', 
+                    '董事责任与投票', '公司注册', '股东权利与股东大会', '公司秘书', '年度申报', 
+                    '会计记录与内部控制', '财务报告', '主要税种', '税收优惠政策', '核心范围', 
+                    '生效日期：', '核心内容：', '生效时间', '征税范围与原则', '规定税种：', 
+                    '核心税收优惠政策', '2026年度税务政策与修订专项', '公司治理', '财务与审计', 
+                    '存货计价', '研发支出', '减值准备冲回', '租赁会计', '公允价值重估',
+                    '先锋企业优惠', '发展与扩张激励', '投资津贴', '批准的特许权使用费', '知识产权激励'
+                ];
+                
+                if (explicitKeys.includes(desc) || (desc.length <= 15 && !desc.includes('。') && !/^[0-9]\./.test(desc))) {
+                    isKey = true;
+                }
+
+                if (isKey) {
+                    cardHtml += `<div class="item-title">${desc}</div>`;
+                } else {
+                    cardHtml += `<div class="item-desc">${desc}</div>`;
+                }
+            }
+            
+            if (src) {
+                let urlMatch = src.match(/http[s]?:\/\/[^\s]+/);
+                if (urlMatch) {
+                    cardHtml += `<div class="item-desc" style="margin-top: 10px;"><a href="${urlMatch[0]}" target="_blank" style="color:#1a73e8;text-decoration:none;">📄 参考数据源链接</a></div>`;
+                } else {
+                    cardHtml += `<div class="item-desc" style="color:#1a73e8; margin-top: 10px;">${src}</div>`;
+                }
+            }
+        });
+        
+        if (cardHtml !== "") cardHtml += `</div>`;
+        html += cardHtml;
+        
+        contentArea.innerHTML = html;
+    }
+
+    function onCompL1Change(selectElem) {
+        compL1 = selectElem.value;
+        const subList = framework[compL1] || [];
+        compL2 = subList[0] || '';
+        renderContent();
+    }
+
+    function onCompL2Change(selectElem) {
+        compL2 = selectElem.value;
+        renderContent();
+    }
+    
+    function renderECharts() {
+        var chartDom = document.getElementById('freightChart');
+        if(!chartDom) return;
+        
+        chartInstance = echarts.init(chartDom);
+        var option = {
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: { type: 'cross' }
+            },
+            legend: {
+                data: ['USWC (美西线)', 'USEC (美东线)'],
+                top: 10,
+                textStyle: { fontSize: 14 }
+            },
+            grid: {
+                left: '3%', right: '4%', bottom: '3%', top: '15%', containLabel: true
+            },
+            xAxis: {
+                type: 'category',
+                boundaryGap: false,
+                data: ['2025-10', '2025-11', '2025-12', '2026-01', '2026-02', '2026-03', '2026-04', '2026-05', '2026-06'],
+                axisLabel: { fontSize: 13 }
+            },
+            yAxis: {
+                type: 'value',
+                name: '实际成交均价 (USD)',
+                nameTextStyle: { fontSize: 13, padding: [0, 0, 10, 0] },
+                axisLabel: { fontSize: 13 }
+            },
+            series: [
+                {
+                    name: 'USWC (美西线)',
+                    type: 'line',
+                    data: [1912, 1956, 2012, 1956, 1900, 1928, 2050, 2071, 3908],
+                    smooth: true,
+                    symbolSize: 8,
+                    itemStyle: { color: '#1a73e8' },
+                    lineStyle: { width: 3, shadowColor: 'rgba(26,115,232,0.3)', shadowBlur: 10 },
+                    label: { show: true, position: 'top', fontSize: 12 }
+                },
+                {
+                    name: 'USEC (美东线)',
+                    type: 'line',
+                    data: [2996, 2949, 2717, 2936, 2824, 2984, 3314, 3324, 4524],
+                    smooth: true,
+                    symbolSize: 8,
+                    itemStyle: { color: '#34a853' },
+                    lineStyle: { width: 3, shadowColor: 'rgba(52,168,83,0.3)', shadowBlur: 10 },
+                    label: { show: true, position: 'top', fontSize: 12 }
+                }
+            ]
+        };
+        chartInstance.setOption(option);
+    }
+
+    init();
+</script>
+</body>
+</html>
